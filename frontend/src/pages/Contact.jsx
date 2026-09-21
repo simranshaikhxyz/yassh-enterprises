@@ -7,11 +7,7 @@ function Contact() {
 
         {/* Header Block */}
         <div className="text-center max-w-2xl mx-auto mb-9 sm:mb-12 lg:mb-14">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-semibold bg-slate-100 text-indigo-600 border border-slate-200 mb-3 sm:mb-4 uppercase tracking-wider">
-            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-indigo-500"></span>
-            Direct Access
-          </span>
-
+          
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-950">
             Let's Connect
           </h1>
@@ -141,8 +137,7 @@ function Contact() {
                       Factory Address
                     </h4>
 
-                    <p className="text-slate-700 text-xs sm:text-sm font-medium mt-1 leading-relaxed">
-                      Room No. 50, L Block, <br />
+                    <p className="text-slate-900 text-xs sm:text-sm font-bold mt-1 leading-relaxed">
                       Jogeshwari East, <br />
                       Mumbai, Maharashtra - 400060
                     </p>
@@ -157,7 +152,7 @@ function Contact() {
                 href="https://maps.google.com/?q=Jogeshwari+East+Mumbai"
                 target="_blank"
                 rel="noreferrer"
-                className="w-full inline-flex items-center justify-center gap-2 bg-slate-950 hover:bg-slate-800 text-white text-xs sm:text-sm font-semibold px-5 sm:px-6 py-3 sm:py-3.5 rounded-xl shadow-sm transition-colors duration-200"
+                className="w-full inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-950 text-slate-900 hover:text-white border border-slate-200 text-xs sm:text-sm font-semibold px-5 sm:px-6 py-3 sm:py-3.5 rounded-xl shadow-sm transition-colors duration-200"
               >
                 <svg
                   className="w-4 h-4"

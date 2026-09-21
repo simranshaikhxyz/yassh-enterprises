@@ -24,7 +24,7 @@ function Register() {
 
     if (!formData.name.trim()) {
       newErrors.name = "Full name is required.";
-    } else if (formData.name.trim().length < 3) {
+    } else if (formData.name.trim().length < 1) {
       newErrors.name = "Name must be at least 3 characters.";
     }
 

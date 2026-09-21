@@ -10,7 +10,7 @@ function OrderPage() {
   const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
-    customerName: "",
+    customerName: JSON.parse(localStorage.getItem("userInfo"))?.name || "",
     phone: "",
     address: "",
     quantity: 1,
@@ -64,12 +64,16 @@ function OrderPage() {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
+
+    if (e.target.name === "address") {
+      e.target.style.height = "auto";
+      e.target.style.height = `${e.target.scrollHeight}px`;
+    }
 
     setErrors({
       ...errors,
@@ -144,7 +148,7 @@ function OrderPage() {
   return (
     <div className="min-h-screen bg-slate-50/50 text-slate-800 antialiased font-sans py-12">
       <div className="max-w-5xl mx-auto px-6">
-        
+
         {/* Navigation Breadcrumb */}
         <div className="mb-8">
           <Link
@@ -160,7 +164,7 @@ function OrderPage() {
 
         {/* Form & Overview Grid Layout */}
         <div className="grid md:grid-cols-12 gap-8 items-start">
-          
+
           {/* Left Column: Dynamic Product & Pricing Summary (Sticky) */}
           <div className="md:col-span-5 bg-white border border-slate-150 rounded-2xl p-6 shadow-sm space-y-6 md:sticky md:top-6">
             <div>
@@ -222,11 +226,10 @@ function OrderPage() {
                   placeholder="e.g. Raman Chawla"
                   value={formData.customerName}
                   onChange={handleChange}
-                  className={`w-full border rounded-xl p-3 text-sm transition-all outline-none focus:ring-4 ${
-                    errors.customerName
-                      ? "border-rose-300 focus:border-rose-400 focus:ring-rose-500/10"
-                      : "border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10"
-                  }`}
+                  className={`w-full border rounded-xl p-3 text-sm transition-all outline-none resize-none focus:ring-4 ${errors.customerName
+                    ? "border-rose-300 focus:border-rose-400 focus:ring-rose-500/10"
+                    : "border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10"
+                    }`}
                 />
                 {errors.customerName && (
                   <p className="text-rose-600 text-xs font-semibold mt-1.5 flex items-center gap-1">
@@ -246,11 +249,10 @@ function OrderPage() {
                   placeholder="10-digit number (e.g. 9876543210)"
                   value={formData.phone}
                   onChange={handleChange}
-                  className={`w-full border rounded-xl p-3 text-sm transition-all outline-none focus:ring-4 ${
-                    errors.phone
-                      ? "border-rose-300 focus:border-rose-400 focus:ring-rose-500/10"
-                      : "border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10"
-                  }`}
+                  className={`w-full border rounded-xl p-3 text-sm transition-all outline-none focus:ring-4 ${errors.phone
+                    ? "border-rose-300 focus:border-rose-400 focus:ring-rose-500/10"
+                    : "border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10"
+                    }`}
                 />
                 {errors.phone && (
                   <p className="text-rose-600 text-xs font-semibold mt-1.5 flex items-center gap-1">
@@ -267,14 +269,14 @@ function OrderPage() {
                 <textarea
                   name="address"
                   rows="3"
+                  style={{ resize: "none", overflow: "hidden" }}
                   placeholder="Full structural destination address (Min. 10 chars)"
                   value={formData.address}
                   onChange={handleChange}
-                  className={`w-full border rounded-xl p-3 text-sm transition-all outline-none focus:ring-4 ${
-                    errors.address
-                      ? "border-rose-300 focus:border-rose-400 focus:ring-rose-500/10"
-                      : "border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10"
-                  }`}
+                  className={`w-full border rounded-xl p-3 text-sm transition-all outline-none focus:ring-4 ${errors.address
+                    ? "border-rose-300 focus:border-rose-400 focus:ring-rose-500/10"
+                    : "border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10"
+                    }`}
                 />
                 {errors.address && (
                   <p className="text-rose-600 text-xs font-semibold mt-1.5 flex items-center gap-1">
@@ -294,11 +296,10 @@ function OrderPage() {
                   min="1"
                   value={formData.quantity}
                   onChange={handleChange}
-                  className={`w-full border rounded-xl p-3 text-sm transition-all outline-none focus:ring-4 ${
-                    errors.quantity
-                      ? "border-rose-300 focus:border-rose-400 focus:ring-rose-500/10"
-                      : "border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10"
-                  }`}
+                  className={`w-full border rounded-xl p-3 text-sm transition-all outline-none focus:ring-4 ${errors.quantity
+                    ? "border-rose-300 focus:border-rose-400 focus:ring-rose-500/10"
+                    : "border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10"
+                    }`}
                 />
                 {errors.quantity && (
                   <p className="text-rose-600 text-xs font-semibold mt-1.5 flex items-center gap-1">

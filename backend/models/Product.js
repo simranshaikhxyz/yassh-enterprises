@@ -30,6 +30,11 @@ const productSchema = new mongoose.Schema(
         required: true,
       },
 
+      height: {
+        type: Number,
+        required: true,
+      },
+
       unit: {
         type: String,
         default: "ft",
@@ -59,13 +64,11 @@ const productSchema = new mongoose.Schema(
       default: false,
     },
 
-    // Updated to support an array of image strings
     images: {
       type: [String],
       required: true,
     },
 
-    // Retained optional single image field for backward compatibility
     image: {
       type: String,
       default: "",

@@ -72,11 +72,11 @@ function Products() {
 
         {/* Page Heading */}
         <div className="text-center mb-10 sm:mb-12">
-          <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-indigo-600 mb-3">
+          <p className="text-lg font-bold uppercase tracking-[0.25em] text-indigo-600 mb-3">
             Yassh Enterprises
           </p>
 
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-950">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-970">
             Products Made for Real Work
           </h1>
 

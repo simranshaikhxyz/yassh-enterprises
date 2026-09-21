@@ -14,11 +14,12 @@ function AddProduct() {
     materialType: "",
     thickness: "",
     color: "",
-    images: [], // Changed from single 'image' string to an array 'images'
+    images: [],
     customizable: false,
     dimensions: {
       length: "",
       width: "",
+      height: "",
       unit: "ft",
     },
   });
@@ -42,18 +43,26 @@ function AddProduct() {
           materialType: data.materialType || "",
           thickness: data.thickness || "",
           color: data.color || "",
-          // Support both legacy single 'image' string or modern 'images' array from backend
-          images: data.images && data.images.length > 0 ? data.images : (data.image ? [data.image] : []),
+          images:
+            data.images && data.images.length > 0
+              ? data.images
+              : data.image
+              ? [data.image]
+              : [],
           customizable: data.customizable || false,
           dimensions: {
             length: data.dimensions?.length || "",
             width: data.dimensions?.width || "",
+            height: data.dimensions?.height || "",
             unit: data.dimensions?.unit || "ft",
           },
         });
       } catch (error) {
         console.error("Fetch product error:", error);
-        alert(error.response?.data?.message || "Failed to load product details.");
+        alert(
+          error.response?.data?.message ||
+            "Failed to load product details."
+        );
         navigate("/admin/products");
       } finally {
         setLoading(false);
@@ -66,7 +75,7 @@ function AddProduct() {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
 
-    if (["length", "width", "unit"].includes(name)) {
+    if (["length", "width", "height", "unit"].includes(name)) {
       setProduct((prev) => ({
         ...prev,
         dimensions: {
@@ -86,13 +95,19 @@ function AddProduct() {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
-    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-    
+    const allowedTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/webp",
+    ];
+
     for (const file of files) {
       if (!allowedTypes.includes(file.type)) {
         alert("Only JPG, PNG and WEBP images are allowed.");
         return;
       }
+
       if (file.size > 5 * 1024 * 1024) {
         alert(`Image "${file.name}" exceeds the 5 MB limit.`);
         return;
@@ -101,15 +116,19 @@ function AddProduct() {
 
     try {
       setUploading(true);
+
       const uploadedImageUrls = [];
 
-      // Upload files sequentially or in parallel
       for (const file of files) {
         const formData = new FormData();
-        formData.append("image", file); // Adjust to "images" if your backend expects an array field name for single-file loop
+        formData.append("image", file);
+
         const { data } = await API.post("/upload", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
         });
+
         if (data.image) {
           uploadedImageUrls.push(data.image);
         }
@@ -119,10 +138,14 @@ function AddProduct() {
         ...prev,
         images: [...prev.images, ...uploadedImageUrls],
       }));
+
       alert("Images uploaded successfully.");
     } catch (error) {
       console.error("Upload image error:", error);
-      alert(error.response?.data?.message || "Failed to upload images.");
+      alert(
+        error.response?.data?.message ||
+          "Failed to upload images."
+      );
     } finally {
       setUploading(false);
     }
@@ -131,7 +154,9 @@ function AddProduct() {
   const removeImage = (indexToRemove) => {
     setProduct((prev) => ({
       ...prev,
-      images: prev.images.filter((_, index) => index !== indexToRemove),
+      images: prev.images.filter(
+        (_, index) => index !== indexToRemove
+      ),
     }));
   };
 
@@ -139,31 +164,45 @@ function AddProduct() {
     e.preventDefault();
 
     if (product.productName.trim().length < 3) {
-      return alert("Product name must contain at least 3 characters.");
+      return alert(
+        "Product name must contain at least 3 characters."
+      );
     }
+
     if (product.description.trim().length < 20) {
-      return alert("Description must contain at least 20 characters.");
+      return alert(
+        "Description must contain at least 20 characters."
+      );
     }
+
     if (Number(product.price) <= 0) {
       return alert("Enter a valid product price.");
     }
+
     if (Number(product.dimensions.length) <= 0) {
       return alert("Enter a valid length.");
     }
+
     if (Number(product.dimensions.width) <= 0) {
       return alert("Enter a valid width.");
     }
+
+    if (Number(product.dimensions.height) <= 0) {
+      return alert("Enter a valid height.");
+    }
+
     if (!product.images || product.images.length === 0) {
-      return alert("Please upload at least one product image.");
+      return alert(
+        "Please upload at least one product image."
+      );
     }
 
     try {
       setSaving(true);
 
-      // Payload matching multi-image schema structure
       const payload = {
         ...product,
-        image: product.images[0], // Keep backward compatibility for single 'image' field if needed
+        image: product.images[0],
       };
 
       if (isEditMode) {
@@ -177,9 +216,12 @@ function AddProduct() {
       navigate("/admin/products");
     } catch (error) {
       console.error("Save product error:", error);
+
       alert(
         error.response?.data?.message ||
-          `Failed to ${isEditMode ? "update" : "add"} product.`
+          `Failed to ${
+            isEditMode ? "update" : "add"
+          } product.`
       );
     } finally {
       setSaving(false);
@@ -197,11 +239,13 @@ function AddProduct() {
   return (
     <div className="min-h-screen bg-slate-50 py-10 antialiased font-sans">
       <div className="max-w-5xl mx-auto px-6">
+
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-slate-900">
             {isEditMode ? "Edit Product" : "Add New Product"}
           </h1>
+
           <p className="text-slate-500 mt-2">
             {isEditMode
               ? "Update existing product details and save changes."
@@ -213,6 +257,7 @@ function AddProduct() {
           onSubmit={submitHandler}
           className="bg-white rounded-2xl shadow-lg p-8 space-y-10 border border-slate-100"
         >
+
           {/* General Information */}
           <section>
             <h2 className="text-xl font-semibold mb-6 border-b pb-2 text-slate-800">
@@ -220,10 +265,12 @@ function AddProduct() {
             </h2>
 
             <div className="space-y-5">
+
               <div>
                 <label className="block mb-2 font-medium text-slate-700">
                   Product Name
                 </label>
+
                 <input
                   type="text"
                   name="productName"
@@ -239,6 +286,7 @@ function AddProduct() {
                 <label className="block mb-2 font-medium text-slate-700">
                   Description
                 </label>
+
                 <textarea
                   rows="5"
                   name="description"
@@ -249,6 +297,7 @@ function AddProduct() {
                   required
                 />
               </div>
+
             </div>
           </section>
 
@@ -259,10 +308,12 @@ function AddProduct() {
             </h2>
 
             <div className="grid md:grid-cols-2 gap-6">
+
               <div>
                 <label className="block mb-2 font-medium text-slate-700">
                   Price (₹)
                 </label>
+
                 <input
                   type="number"
                   name="price"
@@ -277,6 +328,7 @@ function AddProduct() {
                 <label className="block mb-2 font-medium text-slate-700">
                   Material Type
                 </label>
+
                 <input
                   type="text"
                   name="materialType"
@@ -291,6 +343,7 @@ function AddProduct() {
                 <label className="block mb-2 font-medium text-slate-700">
                   Thickness
                 </label>
+
                 <input
                   type="text"
                   name="thickness"
@@ -305,6 +358,7 @@ function AddProduct() {
                 <label className="block mb-2 font-medium text-slate-700">
                   Color
                 </label>
+
                 <input
                   type="text"
                   name="color"
@@ -313,6 +367,7 @@ function AddProduct() {
                   className="w-full border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-indigo-500 outline-none transition"
                 />
               </div>
+
             </div>
           </section>
 
@@ -322,39 +377,71 @@ function AddProduct() {
               Dimensions
             </h2>
 
-            <div className="grid grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+
+              {/* Length */}
               <div>
                 <label className="block mb-2 font-medium text-slate-700">
                   Length
                 </label>
+
                 <input
                   type="number"
                   name="length"
                   value={product.dimensions.length}
                   onChange={handleChange}
+                  placeholder="Length"
+                  min="0"
+                  step="any"
                   className="w-full border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-indigo-500 outline-none transition"
                   required
                 />
               </div>
 
+              {/* Width */}
               <div>
                 <label className="block mb-2 font-medium text-slate-700">
                   Width
                 </label>
+
                 <input
                   type="number"
                   name="width"
                   value={product.dimensions.width}
                   onChange={handleChange}
+                  placeholder="Width"
+                  min="0"
+                  step="any"
                   className="w-full border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-indigo-500 outline-none transition"
                   required
                 />
               </div>
 
+              {/* Height */}
+              <div>
+                <label className="block mb-2 font-medium text-slate-700">
+                  Height
+                </label>
+
+                <input
+                  type="number"
+                  name="height"
+                  value={product.dimensions.height}
+                  onChange={handleChange}
+                  placeholder="Height"
+                  min="0"
+                  step="any"
+                  className="w-full border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                  required
+                />
+              </div>
+
+              {/* Unit */}
               <div>
                 <label className="block mb-2 font-medium text-slate-700">
                   Unit
                 </label>
+
                 <select
                   name="unit"
                   value={product.dimensions.unit}
@@ -367,6 +454,7 @@ function AddProduct() {
                   <option value="mm">mm</option>
                 </select>
               </div>
+
             </div>
           </section>
 
@@ -377,6 +465,7 @@ function AddProduct() {
             </h2>
 
             <label className="block border-2 border-dashed border-slate-300 rounded-2xl p-10 cursor-pointer hover:border-indigo-500 transition text-center bg-slate-50/50">
+
               <input
                 type="file"
                 multiple
@@ -389,6 +478,7 @@ function AddProduct() {
               {uploading ? (
                 <div>
                   <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+
                   <p className="mt-4 text-indigo-600 font-semibold">
                     Uploading images...
                   </p>
@@ -396,41 +486,61 @@ function AddProduct() {
               ) : (
                 <>
                   <div className="text-5xl mb-3">📷</div>
+
                   <p className="text-lg font-semibold text-slate-700">
                     Click or Drag & Drop to Add More Product Images
                   </p>
+
                   <p className="text-sm text-slate-500 mt-2">
                     PNG, JPG or WEBP (Maximum 5 MB each)
                   </p>
                 </>
               )}
+
             </label>
 
-            {/* Preview Grid for Multiple Images */}
+            {/* Preview Grid */}
             {product.images && product.images.length > 0 && (
               <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
+
                 {product.images.map((imgUrl, index) => (
-                  <div key={index} className="relative group aspect-square rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-100">
+                  <div
+                    key={index}
+                    className="relative group aspect-square rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-100"
+                  >
                     <img
                       src={imgUrl}
                       alt={`Product preview ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
+
                     <button
                       type="button"
                       onClick={() => removeImage(index)}
                       className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition shadow-md"
                       title="Remove image"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M6 18L18 6M6 6l12 12"
+                        />
                       </svg>
                     </button>
+
                     <span className="absolute bottom-2 left-2 bg-slate-900/70 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded">
                       #{index + 1}
                     </span>
                   </div>
                 ))}
+
               </div>
             )}
           </section>
@@ -442,6 +552,7 @@ function AddProduct() {
             </h2>
 
             <label className="flex items-center gap-3 cursor-pointer">
+
               <input
                 type="checkbox"
                 id="customizable"
@@ -450,14 +561,17 @@ function AddProduct() {
                 onChange={handleChange}
                 className="w-5 h-5 accent-indigo-600 rounded cursor-pointer"
               />
+
               <span className="font-medium text-slate-700">
                 This product can be customized.
               </span>
+
             </label>
           </section>
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-4 border-t pt-8">
+
             <button
               type="button"
               onClick={() => navigate("/admin/products")}
@@ -479,6 +593,7 @@ function AddProduct() {
                 ? "Update Product"
                 : "Add Product"}
             </button>
+
           </div>
         </form>
       </div>

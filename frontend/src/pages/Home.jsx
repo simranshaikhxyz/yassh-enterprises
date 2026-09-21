@@ -184,7 +184,7 @@ function Home() {
             <h1 className="text-white text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black uppercase leading-[0.95] tracking-tight">
               Crafted <span className="text-indigo-400">Metal.</span>
               <br />
-              Built to Last.
+              <span className="text-indigo-400">Built</span> to Last.
             </h1>
 
             <p className="text-slate-300 text-sm sm:text-base md:text-lg max-w-2xl leading-7 mt-6">
@@ -334,19 +334,7 @@ function Home() {
 
                 </div>
 
-                {/* 26 YEARS BADGE */}
-                <div className="absolute -bottom-5 -right-3 sm:right-6 bg-white rounded-2xl shadow-xl border border-slate-200 px-6 py-4">
-
-                  <p className="text-indigo-600 text-3xl font-black">
-                    26+
-                  </p>
-
-                  <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">
-                    Years of Experience
-                  </p>
-
-                </div>
-
+                
               </div>
 
               {/* STORY */}
@@ -365,12 +353,8 @@ function Home() {
 
                 {/* PARAGRAPH 1 */}
                 <p className="text-slate-500 text-sm sm:text-base leading-7 mt-5">
-                  Yashh Enterprises carries forward a family legacy of metalwork
-                  built on hard work, craftsmanship, and hands-on experience.
-                  The photograph takes us back to an earlier generation
-                  of our family, where our grandfather's generation worked with
-                  simple tools, skilled hands, and a strong commitment to quality
-                  workmanship.
+                  Yassh Enterprises carries forward a family legacy of metalwork, built on hard work, craftsmanship, and hands-on experience.
+                  The photograph takes us back to an earlier generation of our family, when our grandfather’s generation worked with simple tools, skilled hands, and a strong commitment to quality workmanship.
                 </p>
 
                 {/* PARAGRAPH 2 */}
@@ -465,11 +449,10 @@ function Home() {
 
             <div
               key={item.id}
-              className={`absolute inset-0 transition-opacity duration-1000 ease-in-out pointer-events-none ${
-                activeWork === index
-                  ? "opacity-35 scale-100"
-                  : "opacity-0 scale-105"
-              }`}
+              className={`absolute inset-0 transition-opacity duration-1000 ease-in-out pointer-events-none ${activeWork === index
+                ? "opacity-35 scale-100"
+                : "opacity-0 scale-105"
+                }`}
             >
 
               <img
@@ -547,11 +530,10 @@ function Home() {
                       onClick={() =>
                         setActiveWork(item.originalIndex)
                       }
-                      className={`cursor-pointer group relative h-56 sm:h-64 rounded-2xl overflow-hidden border transition-all duration-500 bg-slate-900/80 ${
-                        isActive
-                          ? "border-indigo-500 shadow-2xl shadow-indigo-950/80 scale-[1.02] ring-2 ring-indigo-500/50"
-                          : "border-white/15 hover:border-white/40 opacity-75 hover:opacity-100"
-                      }`}
+                      className={`cursor-pointer group relative h-56 sm:h-64 rounded-2xl overflow-hidden border transition-all duration-500 bg-slate-900/80 ${isActive
+                        ? "border-indigo-500 shadow-2xl shadow-indigo-950/80 scale-[1.02] ring-2 ring-indigo-500/50"
+                        : "border-white/15 hover:border-white/40 opacity-75 hover:opacity-100"
+                        }`}
                     >
 
                       <img
