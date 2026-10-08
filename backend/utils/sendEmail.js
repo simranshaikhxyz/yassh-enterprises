@@ -1,8 +1,5 @@
 import nodemailer from "nodemailer";
 
-/**
- * Sends a transactional email using Nodemailer.
- */
 const sendEmail = async ({ to, subject, text, html }) => {
   try {
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
@@ -10,13 +7,15 @@ const sendEmail = async ({ to, subject, text, html }) => {
     }
 
     const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
+      host: "74.125.24.108",
       port: 587,
       secure: false,
-      family: 4,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
+      },
+      tls: {
+        servername: "smtp.gmail.com",
       },
     });
 
@@ -25,13 +24,13 @@ const sendEmail = async ({ to, subject, text, html }) => {
       to,
       subject,
       text: text || "Your OTP verification code.",
-      html: html || undefined,
+      html,
     };
 
     const info = await transporter.sendMail(mailOptions);
 
     console.log(
-      `✅ Email successfully dispatched to ${to} [ID: ${info.messageId}]`
+      `Email successfully dispatched to ${to} [ID: ${info.messageId}]`
     );
 
     return info;
