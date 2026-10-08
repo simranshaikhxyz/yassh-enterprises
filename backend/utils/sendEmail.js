@@ -37,8 +37,8 @@ const sendEmail = async ({ to, subject, text, html }) => {
 
     return info;
   } catch (error) {
-    console.error("Nodemailer Dispatch Error:", error.message);
-    throw new Error("Failed to send email notification. Please try again.");
+    console.error("Nodemailer Dispatch Error:", error);
+    throw error;
   }
 };
 
