@@ -12,11 +12,13 @@ const RESET_EXPIRY_MINUTES = 15;
 const hashValue = (value) =>
   crypto.createHash("sha256").update(value).digest("hex");
 
-const generateOTP = () =>
-  String(crypto.randomInt(100000, 1000000));
+const generateOTP = () => String(crypto.randomInt(100000, 1000000));
 
 const normalizeEmail = (email) =>
   String(email || "").trim().toLowerCase();
+
+const isValidEmail = (email) =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
 const publicUser = (user) => ({
   _id: user._id,
@@ -31,19 +33,14 @@ const publicUser = (user) => ({
 export const registerUser = async (req, res) => {
   let user;
   let isNewUser = false;
+  let previousValues;
 
   try {
     const { name, email, password } = req.body || {};
-
     const cleanName = String(name || "").trim();
     const cleanEmail = normalizeEmail(email);
 
-    if (
-      !cleanName ||
-      !cleanEmail ||
-      typeof password !== "string" ||
-      !password
-    ) {
+    if (!cleanName || !cleanEmail || typeof password !== "string" || !password) {
       return res.status(400).json({
         message: "Name, email and password are required.",
       });
@@ -55,9 +52,7 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    if (
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)
-    ) {
+    if (!isValidEmail(cleanEmail)) {
       return res.status(400).json({
         message: "Please provide a valid email address.",
       });
@@ -88,6 +83,14 @@ export const registerUser = async (req, res) => {
       });
 
       isNewUser = true;
+    } else {
+      previousValues = {
+        name: user.name,
+        password: user.password,
+        otp: user.otp,
+        otpExpires: user.otpExpires,
+        expireAt: user.expireAt,
+      };
     }
 
     user.name = cleanName;
@@ -96,6 +99,7 @@ export const registerUser = async (req, res) => {
     user.otpExpires = new Date(
       Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000
     );
+    user.expireAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     await user.save();
 
@@ -117,8 +121,7 @@ If you did not request this code, please ignore this email.`,
       if (isNewUser) {
         await User.deleteOne({ _id: user._id });
       } else {
-        user.otp = undefined;
-        user.otpExpires = undefined;
+        Object.assign(user, previousValues);
         await user.save();
       }
 
@@ -154,7 +157,7 @@ export const verifyOTP = async (req, res) => {
     const email = normalizeEmail(req.body?.email);
     const otp = String(req.body?.otp || "").trim();
 
-    if (!email || !/^\d{6}$/.test(otp)) {
+    if (!isValidEmail(email) || !/^\d{6}$/.test(otp)) {
       return res.status(400).json({
         message: "Enter a valid email and 6-digit OTP.",
       });
@@ -218,9 +221,9 @@ export const resendOTP = async (req, res) => {
   try {
     const email = normalizeEmail(req.body?.email);
 
-    if (!email) {
+    if (!isValidEmail(email)) {
       return res.status(400).json({
-        message: "Email address is required.",
+        message: "Please provide a valid email address.",
       });
     }
 
@@ -293,9 +296,9 @@ export const loginUser = async (req, res) => {
     const email = normalizeEmail(req.body?.email);
     const { password } = req.body || {};
 
-    if (!email || typeof password !== "string" || !password) {
+    if (!isValidEmail(email) || typeof password !== "string" || !password) {
       return res.status(400).json({
-        message: "Email and password are required.",
+        message: "A valid email and password are required.",
       });
     }
 
@@ -338,26 +341,20 @@ export const forgotPassword = async (req, res) => {
   try {
     const email = normalizeEmail(req.body?.email);
 
-    if (!email) {
+    if (!isValidEmail(email)) {
       return res.status(400).json({
-        message: "Email address is required.",
+        message: "Please provide a valid email address.",
       });
     }
 
     const user = await User.findOne({ email });
 
-    // Avoid revealing whether an account exists.
-    if (!user) {
+    // Do not disclose whether an account exists.
+    if (!user || !user.isVerified) {
       return res.status(200).json({
         success: true,
         message:
-          "If an account exists for this email, reset instructions will be sent.",
-      });
-    }
-
-    if (!user.isVerified) {
-      return res.status(403).json({
-        message: "Please verify your account first.",
+          "If a verified account exists for this email, reset instructions will be sent.",
       });
     }
 
@@ -382,7 +379,7 @@ export const forgotPassword = async (req, res) => {
         subject: "Reset Your Password - YASSH ENTERPRISES",
         text: `Hello ${user.name},
 
-Use the link below to reset your password:
+Use this link to reset your password:
 
 ${resetURL}
 
@@ -398,7 +395,7 @@ If you did not request a password reset, ignore this email.`,
       await user.save();
 
       return res.status(502).json({
-        message: "Could not send the password reset email.",
+        message: "Could not send the password reset email. Please try again.",
       });
     }
 

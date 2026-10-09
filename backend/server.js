@@ -32,18 +32,23 @@ app.use(helmet());
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   "http://localhost:5173",
-].filter(Boolean);
+].filter(Boolean).map((url) => url.replace(/\/+$/, ""));
 
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
+      const normalizedOrigin = origin?.replace(/\/+$/, "");
+
+      if (!origin || allowedOrigins.includes(normalizedOrigin)) {
         return callback(null, true);
       }
 
+      console.warn("Blocked CORS origin:", origin);
       return callback(new Error("CORS policy violation: Access denied."));
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
@@ -68,7 +73,7 @@ app.use((req, res, next) => {
   }
 });
 
-// File upload configuration
+// File uploads
 app.use(
   fileUpload({
     useTempFiles: true,
@@ -80,7 +85,7 @@ app.use(
 
 // Health check
 app.get("/", (req, res) => {
-  res.status(200).send("MetalPro Backend Running");
+  res.status(200).send("YASSH ENTERPRISES API is running.");
 });
 
 // API routes
@@ -91,7 +96,8 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/upload", uploadRoutes);
 
-// Protected profile route
+
+// Protected profile
 app.get("/api/profile", protect, (req, res) => {
   res.json(req.user);
 });
@@ -111,9 +117,7 @@ app.use((err, req, res, next) => {
     return next(err);
   }
 
-  const statusCode = err.status || 500;
-
-  res.status(statusCode).json({
+  res.status(err.status || 500).json({
     message:
       process.env.NODE_ENV === "production"
         ? "Internal Server Error"
@@ -121,17 +125,18 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start only after MongoDB connects
+// Start server after database connection
 const startServer = async () => {
   try {
     await connectDB();
 
     const server = app.listen(PORT, () => {
       console.log(
-        `Server running on port ${PORT} [${
+        `YASSH API running on port ${PORT} [${
           process.env.NODE_ENV || "development"
         }]`
       );
+      console.log("Allowed frontend origins:", allowedOrigins);
     });
 
     server.on("error", (error) => {
@@ -145,4 +150,3 @@ const startServer = async () => {
 };
 
 startServer();
-

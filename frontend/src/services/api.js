@@ -2,7 +2,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "https://yassh-enterprises-api.onrender.com",
+  baseURL: "https://yassh-enterprises-api.onrender.com/api",
 });
 
 // Attach the Bearer token from localStorage
