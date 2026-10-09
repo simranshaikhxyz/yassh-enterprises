@@ -1,25 +1,26 @@
+
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "https://yassh-enterprises-api.onrender.com/api",
+  baseURL: "http://localhost:5000/api",
 });
 
-// Intercept requests and attach the Bearer token from localStorage
+// Attach the Bearer token from localStorage
 API.interceptors.request.use(
   (config) => {
-    const userInfo = localStorage.getItem("userInfo")
-      ? JSON.parse(localStorage.getItem("userInfo"))
-      : null;
+    const userInfo = localStorage.getItem("userInfo");
 
-    if (userInfo?.token) {
-      config.headers.Authorization = `Bearer ${userInfo.token}`;
+    if (userInfo) {
+      const parsedUserInfo = JSON.parse(userInfo);
+
+      if (parsedUserInfo?.token) {
+        config.headers.Authorization = `Bearer ${parsedUserInfo.token}`;
+      }
     }
 
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 export default API;

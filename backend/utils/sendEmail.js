@@ -1,43 +1,74 @@
-import nodemailer from "nodemailer";
+
+import { google } from "googleapis";
 
 const sendEmail = async ({ to, subject, text, html }) => {
   try {
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-      throw new Error("Missing email environment credentials");
+    const {
+      GMAIL_USER,
+      GMAIL_CLIENT_ID,
+      GMAIL_CLIENT_SECRET,
+      GMAIL_REDIRECT_URI,
+      GMAIL_REFRESH_TOKEN,
+    } = process.env;
+
+    if (
+      !GMAIL_USER ||
+      !GMAIL_CLIENT_ID ||
+      !GMAIL_CLIENT_SECRET ||
+      !GMAIL_REFRESH_TOKEN
+    ) {
+      throw new Error("Missing Gmail API environment variables");
     }
 
-    const transporter = nodemailer.createTransport({
-      host: "74.125.24.108",
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-      tls: {
-        servername: "smtp.gmail.com",
-      },
-    });
-
-    const mailOptions = {
-      from: `"YASSH ENTERPRISES" <${process.env.EMAIL_USER}>`,
-      to,
-      subject,
-      text: text || "Your OTP verification code.",
-      html,
-    };
-
-    const info = await transporter.sendMail(mailOptions);
-
-    console.log(
-      `Email successfully dispatched to ${to} [ID: ${info.messageId}]`
+    const auth = new google.auth.OAuth2(
+      GMAIL_CLIENT_ID,
+      GMAIL_CLIENT_SECRET,
+      GMAIL_REDIRECT_URI
     );
 
-    return info;
+    auth.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN });
+
+    const gmail = google.gmail({ version: "v1", auth });
+
+    const boundary = "otp_email_boundary";
+    const message = [
+      `From: YASSH ENTERPRISES <${GMAIL_USER}>`,
+      `To: ${to}`,
+      `Subject: ${subject}`,
+      "MIME-Version: 1.0",
+      html
+        ? `Content-Type: multipart/alternative; boundary="${boundary}"`
+        : "Content-Type: text/plain; charset=UTF-8",
+      "",
+      ...(html
+        ? [
+            `--${boundary}`,
+            "Content-Type: text/plain; charset=UTF-8",
+            "",
+            text || "Your OTP verification code.",
+            `--${boundary}`,
+            "Content-Type: text/html; charset=UTF-8",
+            "",
+            html,
+            `--${boundary}--`,
+          ]
+        : [text || "Your OTP verification code."]),
+    ].join("\r\n");
+
+    const raw = Buffer.from(message, "utf8").toString("base64url");
+
+    const result = await gmail.users.messages.send({
+      userId: "me",
+      requestBody: { raw },
+    });
+
+    console.log("Email sent successfully:", result.data.id);
+    return result.data;
   } catch (error) {
-    console.error("Nodemailer Dispatch Error:", error);
+    console.error("Gmail API email error:", error.message);
     throw error;
   }
 };
 
 export default sendEmail;
+

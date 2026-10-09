@@ -1,9 +1,12 @@
+
+import "dotenv/config";
+
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import helmet from "helmet";
 import fileUpload from "express-fileupload";
 import mongoSanitize from "express-mongo-sanitize";
+import os from "os";
 
 import connectDB from "./config/db.js";
 
@@ -16,68 +19,71 @@ import uploadRoutes from "./routes/uploadRoutes.js";
 
 import { protect } from "./middleware/authMiddleware.js";
 
-dotenv.config();
-
-// Connect to MongoDB
-connectDB();
-
 const app = express();
+const PORT = process.env.PORT || 5000;
+
 app.set("trust proxy", 1);
-
-/* ----------------------- Security & Core Middleware ----------------------- */
-
-// Guard 1: Set secure HTTP headers
-app.use(helmet());
-
-//  Guard 2: Disable Express server identity headers
 app.disable("x-powered-by");
 
-// Guard 3: Restrict CORS origins safely
+// Security headers
+app.use(helmet());
+
+// CORS configuration
 const allowedOrigins = [
   process.env.FRONTEND_URL,
-  "http://localhost:5173", // Dev server fallback
-].filter(Boolean); // Removes undefined values if env variable is missing
+  "http://localhost:5173",
+].filter(Boolean);
 
 app.use(
   cors({
-    origin: (origin, callback) => {
+    origin(origin, callback) {
       if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("CORS policy violation: Access denied."));
+        return callback(null, true);
       }
+
+      return callback(new Error("CORS policy violation: Access denied."));
     },
     credentials: true,
   })
 );
 
-//  Guard 4: Payload size limiting
+// Request parsing
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 
-//  Guard 5: Safe NoSQL Injection Defense (Avoids getter-only req.query crash)
+// NoSQL injection protection
 app.use((req, res, next) => {
-  if (req.body) mongoSanitize.sanitize(req.body);
-  if (req.params) mongoSanitize.sanitize(req.params);
-  next();
+  try {
+    if (req.body && typeof req.body === "object") {
+      req.body = mongoSanitize.sanitize(req.body);
+    }
+
+    if (req.params && typeof req.params === "object") {
+      req.params = mongoSanitize.sanitize(req.params);
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
 
-//  Guard 6: Secure File Upload limits
+// File upload configuration
 app.use(
   fileUpload({
     useTempFiles: true,
-    tempFileDir: "/tmp/",
-    limits: { fileSize: 5 * 1024 * 1024 }, // Max file size limit: 5MB
+    tempFileDir: os.tmpdir(),
+    limits: { fileSize: 5 * 1024 * 1024 },
     abortOnLimit: true,
   })
 );
 
-/* ------------------------ Routes -------------------------- */
-
+// Health check
 app.get("/", (req, res) => {
-  res.send("MetalPro Backend Running ");
+  res.status(200).send("MetalPro Backend Running");
 });
 
+// API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
@@ -85,42 +91,58 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/upload", uploadRoutes);
 
-/* -------------------- Protected Route --------------------- */
-
+// Protected profile route
 app.get("/api/profile", protect, (req, res) => {
   res.json(req.user);
 });
 
-/* ------------------------ Global Error Handler -------------------------- */
-
-// 404 Route Handler
-app.use((req, res, next) => {
-  res.status(404).json({ message: `Route not found - ${req.originalUrl}` });
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    message: `Route not found - ${req.originalUrl}`,
+  });
 });
 
-// Production-Safe Error Handler
+// Global error handler
 app.use((err, req, res, next) => {
-  console.error("Server Error:", err);
+  console.error("Server error:", err.message);
 
-  const statusCode = err.status || (res.statusCode === 200 ? 500 : res.statusCode);
-  const message =
-    process.env.NODE_ENV === "production"
-      ? "Internal Server Error"
-      : err.message || "Something went wrong";
+  if (res.headersSent) {
+    return next(err);
+  }
 
-  res.status(statusCode).json({ message });
+  const statusCode = err.status || 500;
+
+  res.status(statusCode).json({
+    message:
+      process.env.NODE_ENV === "production"
+        ? "Internal Server Error"
+        : err.message || "Something went wrong",
+  });
 });
 
-/* ------------------------ Server Listener & Crash Guards -------------------------- */
+// Start only after MongoDB connects
+const startServer = async () => {
+  try {
+    await connectDB();
 
-const PORT = process.env.PORT || 5000;
+    const server = app.listen(PORT, () => {
+      console.log(
+        `Server running on port ${PORT} [${
+          process.env.NODE_ENV || "development"
+        }]`
+      );
+    });
 
-const server = app.listen(PORT, () => {
-  console.log(` Server running on port ${PORT} [${process.env.NODE_ENV || "development"}]`);
-});
+    server.on("error", (error) => {
+      console.error("Server startup error:", error.message);
+      process.exit(1);
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error.message);
+    process.exit(1);
+  }
+};
 
-// Handle unhandled promise rejections gracefully
-process.on("unhandledRejection", (err) => {
-  console.error("Unhandled Rejection Failure:", err.message);
-  server.close(() => process.exit(1));
-});
+startServer();
+
