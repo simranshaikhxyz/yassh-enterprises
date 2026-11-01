@@ -7,12 +7,12 @@ import generateToken from "../utils/generateToken.js";
 import sendEmail from "../utils/sendEmail.js";
 
 const OTP_EXPIRY_MINUTES = 10;
-const RESET_EXPIRY_MINUTES = 15;
 
 const hashValue = (value) =>
   crypto.createHash("sha256").update(value).digest("hex");
 
-const generateOTP = () => String(crypto.randomInt(100000, 1000000));
+const generateOTP = () =>
+  String(crypto.randomInt(100000, 1000000));
 
 const normalizeEmail = (email) =>
   String(email || "").trim().toLowerCase();
@@ -37,10 +37,16 @@ export const registerUser = async (req, res) => {
 
   try {
     const { name, email, password } = req.body || {};
+
     const cleanName = String(name || "").trim();
     const cleanEmail = normalizeEmail(email);
 
-    if (!cleanName || !cleanEmail || typeof password !== "string" || !password) {
+    if (
+      !cleanName ||
+      !cleanEmail ||
+      typeof password !== "string" ||
+      !password
+    ) {
       return res.status(400).json({
         message: "Name, email and password are required.",
       });
@@ -99,7 +105,9 @@ export const registerUser = async (req, res) => {
     user.otpExpires = new Date(
       Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000
     );
-    user.expireAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    user.expireAt = new Date(
+      Date.now() + 24 * 60 * 60 * 1000
+    );
 
     await user.save();
 
@@ -116,7 +124,10 @@ This code expires in ${OTP_EXPIRY_MINUTES} minutes.
 If you did not request this code, please ignore this email.`,
       });
     } catch (emailError) {
-      console.error("Registration email error:", emailError.message);
+      console.error(
+        "Registration email error:",
+        emailError.message
+      );
 
       if (isNewUser) {
         await User.deleteOne({ _id: user._id });
@@ -126,7 +137,8 @@ If you did not request this code, please ignore this email.`,
       }
 
       return res.status(502).json({
-        message: "Unable to send the verification email. Please try again.",
+        message:
+          "Unable to send the verification email. Please try again.",
       });
     }
 
@@ -265,7 +277,10 @@ This code expires in ${OTP_EXPIRY_MINUTES} minutes.
 If you did not request this code, please ignore this email.`,
       });
     } catch (emailError) {
-      console.error("Resend OTP email error:", emailError.message);
+      console.error(
+        "Resend OTP email error:",
+        emailError.message
+      );
 
       user.otp = previousOTP;
       user.otpExpires = previousExpiry;
@@ -296,7 +311,9 @@ export const loginUser = async (req, res) => {
     const email = normalizeEmail(req.body?.email);
     const { password } = req.body || {};
 
-    if (!isValidEmail(email) || typeof password !== "string" || !password) {
+    if (!isValidEmail(email) ||
+        typeof password !== "string" ||
+        !password) {
       return res.status(400).json({
         message: "A valid email and password are required.",
       });
@@ -335,7 +352,7 @@ export const loginUser = async (req, res) => {
   }
 };
 
-// ================= FORGOT PASSWORD =================
+// ================= FORGOT PASSWORD (OTP) =================
 
 export const forgotPassword = async (req, res) => {
   try {
@@ -347,61 +364,59 @@ export const forgotPassword = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({
+      email,
+      isVerified: true,
+    });
 
-    // Do not disclose whether an account exists.
-    if (!user || !user.isVerified) {
+    // Avoid revealing whether an account exists.
+    if (!user) {
       return res.status(200).json({
         success: true,
         message:
-          "If a verified account exists for this email, reset instructions will be sent.",
+          "If a verified account exists, a reset OTP will be sent.",
       });
     }
 
-    const resetToken = crypto.randomBytes(32).toString("hex");
+    const otp = generateOTP();
 
-    user.resetPasswordToken = hashValue(resetToken);
-    user.resetPasswordExpires = new Date(
-      Date.now() + RESET_EXPIRY_MINUTES * 60 * 1000
+    user.resetPasswordOTP = hashValue(otp);
+    user.resetPasswordOTPExpires = new Date(
+      Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000
     );
 
     await user.save();
 
-    const frontendURL = (
-      process.env.FRONTEND_URL || "http://localhost:5173"
-    ).replace(/\/+$/, "");
-
-    const resetURL = `${frontendURL}/reset-password/${resetToken}`;
-
     try {
       await sendEmail({
         to: email,
-        subject: "Reset Your Password - YASSH ENTERPRISES",
+        subject: "Password Reset OTP - YASSH ENTERPRISES",
         text: `Hello ${user.name},
 
-Use this link to reset your password:
+Your password reset OTP is: ${otp}
 
-${resetURL}
+This OTP expires in ${OTP_EXPIRY_MINUTES} minutes.
 
-This link expires in ${RESET_EXPIRY_MINUTES} minutes.
-
-If you did not request a password reset, ignore this email.`,
+If you did not request this, please ignore this email.`,
       });
     } catch (emailError) {
-      console.error("Password reset email error:", emailError.message);
+      console.error(
+        "Password reset email error:",
+        emailError.message
+      );
 
-      user.resetPasswordToken = undefined;
-      user.resetPasswordExpires = undefined;
+      user.resetPasswordOTP = undefined;
+      user.resetPasswordOTPExpires = undefined;
       await user.save();
 
       return res.status(502).json({
-        message: "Could not send the password reset email. Please try again.",
+        message: "Could not send OTP. Please try again.",
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: "Password reset instructions have been sent if eligible.",
+      message: "Password reset OTP sent to your email.",
     });
   } catch (error) {
     console.error("Forgot password error:", error.message);
@@ -412,40 +427,69 @@ If you did not request a password reset, ignore this email.`,
   }
 };
 
-// ================= RESET PASSWORD =================
+// ================= RESET PASSWORD (OTP) =================
 
 export const resetPassword = async (req, res) => {
   try {
-    const token = String(
-      req.params?.token || req.body?.token || ""
-    ).trim();
+    const email = normalizeEmail(req.body?.email);
+    const otp = String(req.body?.otp || "").trim();
+    const { newPassword } = req.body || {};
 
-    const { password } = req.body || {};
-
-    if (!token || typeof password !== "string" || !password) {
+    if (
+      !isValidEmail(email) ||
+      !/^\d{6}$/.test(otp) ||
+      typeof newPassword !== "string" ||
+      !newPassword
+    ) {
       return res.status(400).json({
-        message: "Reset token and new password are required.",
+        message: "Enter email, 6-digit OTP and new password.",
       });
     }
 
-    if (password.length < 8) {
+    if (newPassword.length < 8) {
       return res.status(400).json({
         message: "Password must contain at least 8 characters.",
       });
     }
 
     const user = await User.findOne({
-      resetPasswordToken: hashValue(token),
-      resetPasswordExpires: { $gt: new Date() },
+      email,
+      isVerified: true,
     });
 
-    if (!user) {
+    if (
+      !user ||
+      !user.resetPasswordOTP ||
+      !user.resetPasswordOTPExpires
+    ) {
       return res.status(400).json({
-        message: "Reset link is invalid or has expired.",
+        message: "Invalid or expired OTP. Request a new code.",
       });
     }
 
-    user.password = await bcrypt.hash(password, 12);
+    if (user.resetPasswordOTPExpires.getTime() <= Date.now()) {
+      user.resetPasswordOTP = undefined;
+      user.resetPasswordOTPExpires = undefined;
+      await user.save();
+
+      return res.status(400).json({
+        message: "OTP expired. Please request a new code.",
+      });
+    }
+
+    if (hashValue(otp) !== user.resetPasswordOTP) {
+      return res.status(400).json({
+        message: "Incorrect OTP. Please try again.",
+      });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 12);
+
+    // OTP can only be used once.
+    user.resetPasswordOTP = undefined;
+    user.resetPasswordOTPExpires = undefined;
+
+    // Clear old reset-link fields, if present.
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
 

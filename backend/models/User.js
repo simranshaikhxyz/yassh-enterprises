@@ -37,9 +37,15 @@ const userSchema = new mongoose.Schema(
       default: false,
     },
 
+    // Registration OTP
     otp: String,
     otpExpires: Date,
 
+    // Password-reset OTP
+    resetPasswordOTP: String,
+    resetPasswordOTPExpires: Date,
+
+    // Legacy token-based reset fields
     resetPasswordToken: String,
     resetPasswordExpires: Date,
 
@@ -64,4 +70,3 @@ userSchema.methods.markAsVerified = async function () {
 const User = mongoose.model("User", userSchema);
 
 export default User;
-

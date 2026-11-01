@@ -16,7 +16,9 @@ export const protect = async (req, res, next) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
       // Fetch user from DB and exclude sensitive fields (password, otp)
-      req.user = await User.findById(decoded.id).select("-password -otp -otpExpires");
+      req.user = await User.findById(decoded.id).select(
+  "-password -otp -otpExpires -resetPasswordOTP -resetPasswordOTPExpires -resetPasswordToken -resetPasswordExpires"
+);
 
       // 🛡️ Guard: Check if user document still exists in MongoDB
       if (!req.user) {
